@@ -81,8 +81,8 @@ if cdevices.value == 0:
 ##comment out input prompts and hardcode values if repeating same measurment many times
 amplitude = .3 #float(input("Driving amplitude? (Volts):  "))
 periods = 1 #int(input("Number of desired IV cycles? "))
-ptsppI = 500 #int(input("Number of datapoints per period? "))
-periodrate = 1 #float(input("Number of periods per second? "))
+ptsppI = 100 #int(input("Number of datapoints per period? "))
+periodrate = .01 #float(input("Number of periods per second? "))
 R = 200 #resistance in kOhms
 ARatio = .8  #if 1, most possible averaging is done internal. If 0, all averaging is done external (at 12 bit depth).
 
@@ -104,7 +104,7 @@ prhzAcq = newratio * MaxprhzAcq  #this is how fast we acctually ask for data fro
 
 avg_Nint = prhzAcq/prhzAcqI
 
-print("avg_Nint is: ", avg_Nint)
+print("averaging over ", avg_Nint, "samples internally")
 #number of samples that will be averaged over internally
 
 #we need a fake ptsppI. ptspp will be used internally
@@ -217,7 +217,7 @@ dwf.FDwfAnalogInConfigure(hdwf, c_int(0), c_int(1))
 print("waiting to finish")
 
 plt.figure(0)
-plt.axis([0,nSamples,-amplitude,amplitude])
+plt.axis([0,ptsppI*periods,-amplitude/100,amplitude/100])
 
 
 cSamples = 0
@@ -251,7 +251,7 @@ while cSamples < nSamples:
 
     if cSamples+cAvailable.value > nSamples : #grab the last little bit
         cAvailable = c_int(nSamples-cSamples) ###########- #########
-        print("grab last little bit")
+        #print("grab last little bit")
     #print("avaiable values: ", cAvailable.value)
     #print("nSamples is: ", nSamples," and cSamples is: ", cSamples)
     dwf.FDwfAnalogInStatusData(hdwf, c_int(0), byref(rgdSamples, sizeof(c_double)*cSamples), cAvailable) # get channel 1 data
@@ -264,6 +264,31 @@ while cSamples < nSamples:
 
     #plt.plot(rgdSamples[0,cSamples], color = '#962424')
     #plt.show()
+samples = 0
+sum1 = 0
+sum2 = 0
+Scounter = 0
+Bcounter = 0
+RGD1 = []
+RGD2 = []
+
+for sample in range(len(rgdSamples)):
+    sum1 += rgdSamples[sample]
+    sum2 += rgdSamples2[sample]
+    Scounter += 1
+    if Scounter >= avg_Nint:
+        RGD1.append(sum1/Scounter)
+        RGD2.append(sum2/Scounter)
+        Bcounter += 1
+        Scounter = 0
+        sum1 = 0
+        sum2 = 0
+
+print()
+print("length of RGD1 is: ", len(RGD1))
+print("length of RGD2 is: ", len(RGD2))
+
+
 print()
 print("Recording finished")
 print("External averaging over ", avg_N, " samples.")
@@ -281,9 +306,9 @@ if len(sys.argv) < 2:
     filepath = os.path.join(here, subdir, filename1)
     f = open(filepath, "w")
     f.write("Volts2, Volts2\n")
-    for x in range(0, len(rgdSamples)):
-        f.write("%s," % rgdSamples[x])
-        f.write("%s\n" % rgdSamples2[x])
+    for x in range(0, len(RGD1)):
+        f.write("%s," % RGD1[x])
+        f.write("%s\n" % RGD2[x])
     f.close()
     print("File saved as: ", filename1)
 elif sys.argv[1] == "m":
@@ -291,69 +316,40 @@ elif sys.argv[1] == "m":
 
 # find first point
 
-samples = 0
-sum1 = 0
-sum2 = 0
-Scounter = 0
-Bcounter = 0
-RGD1 = []
-RGD2 = []
 
 
 
-for sample in range(len(rgdSamples)):
-    sum1 += rgdSamples[sample]
-    sum2 += rgdSamples2[sample]
-    Scounter += 1
-    if Scounter >= avg_Nint:
-        RGD1.append(sum1/Scounter)
-        RGD2.append(sum2/Scounter)
-        Bcounter += 1
-        Scounter = 0
-        sum1 = 0
-        sum2 = 0
-
-print("length of RGD1 is: ", len(RGD1))
-print("length of RGD2 is: ", len(RGD2))
-
-
-
-
-
-
-
-## in progress
 
 begin = 0
-for i in range(0, ptspp):
-    if rgdSamples[i] < 0 and rgdSamples[i+1] > 0:
+for i in range(0, ptsppI):
+    if RGD1[i] < 0 and RGD1[i+1] > 0:
         begin = i + 1
         break
     elif i == ptspp:
         print("Proper begin point not found")
 
 print("begin =", begin)
-end = nSamples
-for i in range(nSamples, ptspp, -1):
-    if rgdSamples[i-1] < 0 and rgdSamples[i-2] > 0:
+end = len(RGD1)
+for i in range(end, ptsppI, -1):
+    if RGD1[i-1] < 0 and RGD1[i-2] > 0:
         end = i
         break
 print("end =", end)
 
-print("length of rgdSamples: ", len(rgdSamples))
-print("length of rgdSamples2: ", len(rgdSamples2))
+#print("length of rgdSamples: ", len(rgdSamples))
+#print("length of rgdSamples2: ", len(rgdSamples2))
 
-driver=[0.0]*len(rgdSamples)
-rgpz=[0.0]*len(rgdSamples2)
-for i in range(0,nSamples):
-    driver[i]=rgdSamples[i]
-    rgpz[i]=rgdSamples2[i]
+driver=[0.0]*len(RGD1)
+rgpz=[0.0]*len(RGD2)
+for i in range(0,len(RGD1)):
+    driver[i]=RGD1[i]
+    rgpz[i]=RGD2[i]
 
 
-if periods >= 2:
-    plotlength = 2 * ptspp
-if periods < 2:
-    plotlength = nSamples
+if periods >= 10:
+    plotlength = 2 * ptsppI
+if periods < 10:
+    plotlength = ptsppI * periods
 
 scatterx = rgpz[0:plotlength]
 scattery = [0] * plotlength
@@ -363,7 +359,8 @@ print("length of scattery: ", len(scattery))
 #rgpz is discretized on a grid that is too course
 for i in range(0,plotlength):
     scattery[i] = ((driver[i]-rgpz[i])/(R*1000))*1000000
-
+print("driver length is: ", len(driver))
+print("rgpz length is: ", len(rgpz))
 plt.figure(0)
 plt.plot(driver, color = '#962424') #red
  #rg or grpy is direct waveform generator voltage
