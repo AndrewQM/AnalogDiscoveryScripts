@@ -16,6 +16,7 @@ import time
 import matplotlib.pyplot as plt
 import sys
 import datetime
+import os
 
 if len(sys.argv)  > 2:
     print("Usage: one optional paramater m disables file saving")
@@ -80,8 +81,8 @@ if cdevices.value == 0:
 ##comment out input prompts and hardcode values if repeating same measurment many times
 amplitude = 1.5 #float(input("Driving amplitude? (Volts):  "))
 periods = 1 #int(input("Number of desired IV cycles? "))
-ptsppI = 5000 #int(input("Number of datapoints per period? "))
-periodrate = .02 #float(input("Number of periods per second? "))
+ptsppI = 500 #int(input("Number of datapoints per period? "))
+periodrate = .1 #float(input("Number of periods per second? "))
 R = 200 #resistance in kOhms
 ARatio = .8  #if 1, most possible averaging is done internal. If 0, all averaging is done external.
 
@@ -271,11 +272,14 @@ if fLost:
 if fCorrupted:
     print("Samples could be corrupted! Reduce frequency")
 
+here = os.path.dirname(os.path.realpath(__file__))
+subdir = "Data"
+filename1 = datetime.datetime.now().strftime("IV_%m_%d_%Y-%H%M%S")
 
 # should redo this to record internal averaged samples
 if len(sys.argv) < 2:
-    filename1 = datetime.datetime.now().strftime("IV_%m_%d_%Y-%H%M%S")
-    f = open(filename1, "w")
+    filepath = os.path.join(here, subdir, filename1)
+    f = open(filepath, "w")
     f.write("Volts2, Volts2\n")
     for x in range(0, len(rgdSamples)):
         f.write("%s," % rgdSamples[x])
