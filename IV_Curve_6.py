@@ -44,13 +44,16 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         sys.stdout.write('\n')
     sys.stdout.flush()
 
+with open("dwf_location.txt", "r") as dwf_location:
+    location = dwf_location.read().replace('\n', '')
+    print(location)
 
 if sys.platform.startswith("win"):
     dwf = cdll.dwf
 elif sys.platform.startswith("darwin"):
     dwf = cdll.LoadLibrary("/Library/Frameworks/dwf.framework/dwf")
 else:
-    dwf = cdll.LoadLibrary("/usr/lib/libdwf.so.3.8.3")
+    dwf = cdll.LoadLibrary(location)
 
 
 hdwf = c_int()
