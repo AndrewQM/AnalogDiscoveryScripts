@@ -94,9 +94,9 @@ if cdevices.value == 0:
 ############################################################
 ##comment out input prompts and hardcode values if repeating same measurment many times
 amplitude = .6 #float(input("Driving amplitude? (Volts):  "))
-periods = 10 #int(input("Number of desired IV cycles? "))
-ptsppI = 1000 #int(input("Number of datapoints per period? "))
-periodrate = .1 #float(input("Number of periods per second? "))
+periods = 20 #int(input("Number of desired IV cycles? "))
+ptsppI = 20 #int(input("Number of datapoints per period? "))
+periodrate = 5 #float(input("Number of periods per second? "))
 R = 10 #resistance in kOhms
 ARatio = 1  #if 1, most possible averaging is done internal. If 0, all averaging is done external (at 12 bit depth).
 DisableExternalAverageing = 1 #avoids 12bit rounding errors
