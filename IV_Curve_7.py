@@ -78,7 +78,7 @@ if cdevices.value == 0:
     quit()
 
 ############################################################
-##comment out input prompts and hardcode values if repeating same measurment many times
+
 amplitude = .6 #float(input("Driving amplitude? (Volts):  "))
 periods = 1 #int(input("Number of desired IV cycles? "))
 ptsppI = 1000 #int(input("Number of datapoints per period? "))
@@ -87,12 +87,11 @@ R = 10 #resistance in kOhms
 ARatio = 1  #if 1, most possible averaging is done internal. If 0, all averaging is done external (at 12 bit depth).
 DisableExternalAverageing = 1
 
-# go with 5 periods at 10000 samples per period
-#50000 samples per second
-prhzAcqI = periodrate * ptsppI
+prhzAcqI = periodrate * ptsppI #output sample rate
 
 
-MaxprhzAcq = 50000 #should be increased as high as it can go on a certain config
+MaxprhzAcq = 50000 #Internall max usable samplerate without errors.
+#Should be increased as high as it can go on a certain config
 
 
 #ratio = MaxprhzAcq/prhzAcqI
