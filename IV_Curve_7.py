@@ -18,9 +18,20 @@ import sys
 import datetime
 import os
 
-#if len(sys.argv)  > 2:
-    #print("Usage: one optional paramater m disables file saving")
-    #exit(1)
+print("length of status is: ", len(sys.argv))
+
+opoption1 = "NaN"
+opoption2 = "NaN"
+
+if len(sys.argv) == 2:
+    opoption1 = sys.argv[1]
+if len(sys.argv) == 3:
+    opoption1 = sys.argv[1]
+    opoption2 = sys.argv[2]
+if len(sys.argv) > 3:
+    print("Usage: two optional paramters:\n 'm' disables file saving, 'f' extends IV graph over whole aquisition range")
+    exit(1)
+
 
 # Print iterations progress
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100):
@@ -45,6 +56,9 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         sys.stdout.write('\n')
     sys.stdout.flush()
 
+
+# RedHat system set up with differnt named library file. 
+# dwf_location file directs script to use correct file considering host system. 
 with open("dwf_location.txt", "r") as dwf_location:
     location = dwf_location.read().replace('\n', '')
     print(location)
@@ -80,12 +94,12 @@ if cdevices.value == 0:
 ############################################################
 
 amplitude = .6 #float(input("Driving amplitude? (Volts):  "))
-periods = 1 #int(input("Number of desired IV cycles? "))
-ptsppI = 1000 #int(input("Number of datapoints per period? "))
-periodrate = .005 #float(input("Number of periods per second? "))
+periods = 20 #int(input("Number of desired IV cycles? "))
+ptsppI = 20 #int(input("Number of datapoints per period? "))
+periodrate = 5 #float(input("Number of periods per second? "))
 R = 10 #resistance in kOhms
 ARatio = 1  #if 1, most possible averaging is done internal. If 0, all averaging is done external (at 12 bit depth).
-DisableExternalAverageing = 1
+DisableExternalAverageing = 1 #avoids 12bit rounding errors
 
 prhzAcqI = periodrate * ptsppI #output sample rate
 
@@ -99,12 +113,12 @@ ratio = prhzAcqI/MaxprhzAcq
 
 #choose ratio between internal and external averaging over an exponential metric
 newratio = math.exp(math.log(ratio) + math.log(1/ratio)*ARatio)
-print("new ratio is: ", newratio)
+
 prhzAcq = newratio * MaxprhzAcq  #this is how fast we acctually ask for data from device
 
 avg_Nint = prhzAcq/prhzAcqI
 
-print("averaging over ", avg_Nint, "samples internally")
+
 #number of samples that will be averaged over internally
 
 #we need a fake ptsppI. ptspp will be used internally
@@ -113,7 +127,7 @@ ptspp = prhzAcq/periodrate
 avg_N = int(100000000 / prhzAcq)
 
 nSamples = ptspp * periods
-ttime = 1.1*(nSamples/prhzAcq)  #added a little extra time. Long runs tend to lose samples otherwise
+ttime = int(1.1*(nSamples/prhzAcq))  #added a little extra time. Long runs tend to lose samples otherwise
 
 prhzAcq = int(prhzAcq)
 nSamples = int(nSamples) + 1
@@ -121,13 +135,13 @@ avg_N = int(avg_N)
 avg_Nint = int(avg_Nint)
 ptspp = int(ptspp) + 1
 
-print("nSamples is: ", nSamples)
-print("ptspp is: ", ptspp)
-
-
-
-
+#print("new ratio is: ", newratio)
+#print("nSamples is: ", nSamples)
+#print("ptspp is: ", ptspp)
+print("averaging over ", avg_Nint, "samples internally")
 print("Opening first device")
+
+
 hdwf = c_int()
 dwf.FDwfDeviceOpen(c_int(0), byref(hdwf))
 
@@ -161,7 +175,7 @@ print("DWF Version: "+str(version.value))
 #open device
 
 print("completion time:", ttime, "seconds")
-print("total internal samples:", nSamples)
+#print("total internal samples:", nSamples)
 print("")
 
 
@@ -290,13 +304,8 @@ for sample in range(len(rgdSamples)):
         sum2 = 0
 
 print()
-print("length of RGD1 is: ", len(RGD1))
-print("length of RGD2 is: ", len(RGD2))
-
-
-print()
-print("Recording finished")
-print("External averaging over ", avg_N, " samples.")
+#print("Recording finished")
+#print("External averaging over ", avg_N, " samples.")
 if fLost:
     print("Samples were lost! Reduce frequency")
 if fCorrupted:
@@ -306,8 +315,8 @@ here = os.path.dirname(os.path.realpath(__file__))
 subdir = "Data"
 filename1 = datetime.datetime.now().strftime("IV_%m_%d_%Y-%H%M%S")
 
-# should redo this to record internal averaged samples
-if len(sys.argv) < 2:
+
+if opoption1 != "m" and opoption2 != "m":
     filepath = os.path.join(here, subdir, filename1)
     f = open(filepath, "w")
     f.write("Volts2, Volts2\n")
@@ -316,10 +325,9 @@ if len(sys.argv) < 2:
         f.write("%s\n" % RGD2[x])
     f.close()
     print("File saved as: ", filename1)
-elif sys.argv[1] == "m" or sys.argv[2] == "m":
+else:
     print("File save deactivated")
 
-# find first point
 
 
 
@@ -350,8 +358,9 @@ for i in range(0,len(RGD1)):
     driver[i]=RGD1[i]
     rgpz[i]=RGD2[i]
 
-if sys.argv[1] == "f" or sys.argv[2] == "f":
+if opoption1 == "f" or opoption2 == "f":
     plotlength = ptsppI * periods
+    print("showing all data on scatter plot")
 else:
     if periods >= 2:
         plotlength = 2 * ptsppI
@@ -361,13 +370,12 @@ else:
 scatterx = rgpz[0:plotlength]
 scattery = [0] * plotlength
 
-print("length of scatterx: ", len(scatterx))
-print("length of scattery: ", len(scattery))
+#print("length of scatterx: ", len(scatterx))
+#print("length of scattery: ", len(scattery))
 #rgpz is discretized on a grid that is too course
 for i in range(0,plotlength):
     scattery[i] = ((driver[i]-rgpz[i])/(R*1000))*1000000
-print("driver length is: ", len(driver))
-print("rgpz length is: ", len(rgpz))
+
 plt.figure(0)
 plt.plot(driver, color = '#962424') #red
  #rg or grpy is direct waveform generator voltage
@@ -377,7 +385,7 @@ plt.plot(rgpz, color = '#249096') #cyan
 plt.figure(1)
 plt.scatter(scatterx,scattery, s=1)
 plt.xlabel("Input Voltage (V)")
-plt.ylabel("Current (µA)")
+plt.ylabel("Current (µA) (scaling may be wrong)")
 plt.title("IV Performance")
 #plt.savefig(filename1 + ".png")
 plt.show()
