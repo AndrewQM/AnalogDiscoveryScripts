@@ -18,7 +18,7 @@ import sys
 import datetime
 import os
 
-print("length of status is: ", len(sys.argv))
+#print("length of status is: ", len(sys.argv))
 
 opoption1 = "NaN"
 opoption2 = "NaN"
@@ -93,18 +93,18 @@ if cdevices.value == 0:
 
 ############################################################
 
-amplitude = .6 #float(input("Driving amplitude? (Volts):  "))
-periods = 1 #int(input("Number of desired IV cycles? "))
-ptsppI = 1000 #int(input("Number of datapoints per period? "))
-periodrate = .1 #float(input("Number of periods per second? "))
+amplitude = 5 #float(input("Driving amplitude? (Volts):  "))
+periods = 10 #int(input("Number of desired IV cycles? "))
+ptsppI = 100 #int(input("Number of datapoints per period? "))
+periodrate = .5 #float(input("Number of periods per second? "))
 R = 10 #resistance in kOhms
 ARatio = 1  #if 1, most possible averaging is done internal. If 0, all averaging is done external (at 12 bit depth).
-DisableExternalAverageing = 1 #avoids 12bit rounding errors
+DisableExternalAverageing = 1 #avoids 12bit rounding errors on low voltage signals. Set to zero for high speed & accuracy
 
 prhzAcqI = periodrate * ptsppI #output sample rate
 
 
-MaxprhzAcq = 30000 #Internall max usable samplerate without errors.
+MaxprhzAcq = 20000 #Internall max usable samplerate without errors.
 #Should be increased as high as it can go on a certain config
 
 
@@ -235,14 +235,49 @@ time.sleep(2)
 dwf.FDwfAnalogInConfigure(hdwf, c_int(0), c_int(1))
 print("waiting to finish")
 
-plt.figure(0)
-plt.axis([0,ptsppI*periods,-2*amplitude,2*amplitude])
-
+#plt.figure(0)
+#plt.axis([0,ptsppI*periods,-2*amplitude,2*amplitude])
 
 cSamples = 0
 display = 0
+
+samples = 0
+sum1 = 0
+sum2 = 0
+Scounter = 0
+Bcounter = 0
+RGD1 = []
+RGD2 = []
+RGDa = []
+i = 1
+
+fig, ax = plt.subplots()
+line1, = ax.plot([], [], lw=2)
+line2, = ax.plot([], [], lw=2)
+
+ax.grid()
+ax.set_ylim(-1.5*amplitude,1.5*amplitude)
+ax.set_xlim(0,ptsppI)
+line1.set_data(RGDa,RGD1)
+line2.set_data(RGDa,RGD2)
+plt.draw()
+
+
+
 printProgressBar(0, nSamples, prefix = 'Progress:', suffix = 'Complete', length = 50)
 while cSamples < nSamples:
+    #xmin, xmax = ax.get_xlim()
+
+    #if len(RGD1) >= xmax:
+    #    ax.set_xlim(len(RGD1) - ptsppI, len(RGD1))
+    #    ax.figure.canvas.draw()
+
+    #line1.set_data(RGDa,RGD1)
+    #line2.set_data(RGDa,RGD2)
+    #plt.pause(.00001)
+
+
+
 
     dwf.FDwfAnalogInStatus(hdwf, c_int(1), byref(sts))
     if cSamples == 0 and (sts == DwfStateConfig or sts == DwfStatePrefill or sts == DwfStateArmed) :
@@ -276,6 +311,9 @@ while cSamples < nSamples:
     dwf.FDwfAnalogInStatusData(hdwf, c_int(0), byref(rgdSamples, sizeof(c_double)*cSamples), cAvailable) # get channel 1 data
     dwf.FDwfAnalogInStatusData(hdwf, c_int(1), byref(rgdSamples2, sizeof(c_double)*cSamples), cAvailable) # get channel 2 data
     cSamples += cAvailable.value
+
+
+
     #print("final cSamples: ", cSamples)
     #print("values added")
 
@@ -283,25 +321,54 @@ while cSamples < nSamples:
 
     #plt.plot(rgdSamples[0,cSamples], color = '#962424')
     #plt.show()
-samples = 0
-sum1 = 0
-sum2 = 0
-Scounter = 0
-Bcounter = 0
-RGD1 = []
-RGD2 = []
-
-for sample in range(len(rgdSamples)):
-    sum1 += rgdSamples[sample]
-    sum2 += rgdSamples2[sample]
-    Scounter += 1
-    if Scounter >= avg_Nint:
-        RGD1.append(sum1/Scounter)
-        RGD2.append(sum2/Scounter)
-        Bcounter += 1
-        Scounter = 0
+    while cSamples - Scounter >= avg_Nint:
         sum1 = 0
         sum2 = 0
+        if Scounter+avg_Nint > nSamples:
+            for pt in range(Scounter, nSamples): #goes up to cSamples+avg_Nint-1
+                sum1 += rgdSamples[pt]
+                sum2 += rgdSamples2[pt]
+            val1 = sum1/(nSamples-Scounter)
+            val2 = sum2/(nSamples-Scounter)
+        else:
+            for pt in range(Scounter, Scounter+avg_Nint): #goes up to cSamples+avg_Nint-1
+                sum1 += rgdSamples[pt]
+                sum2 += rgdSamples2[pt]
+            val1 = sum1/avg_Nint
+            val2 = sum2/avg_Nint
+        RGD1.append(val1)
+        RGD2.append(val2)
+        RGDa.append(i)
+        i += 1
+        Scounter = Scounter + avg_Nint
+
+
+
+
+    #xmin, xmax = ax.get_xlim()
+
+    #if t >= xmax:
+    #    ax.set_xlim(t - (xmax - xmin), t )
+    #    ax.figure.canvas.draw()
+
+    #line.set_data(RGD1, RGD2)
+    #plt.pause(.0001)
+
+
+###
+#for sample in range(len(rgdSamples)):
+#    sum1 += rgdSamples[sample]
+#    sum2 += rgdSamples2[sample]
+#    Scounter += 1
+#    if Scounter >= avg_Nint:
+#        RGD1.append(sum1/Scounter)
+#        RGD2.append(sum2/Scounter)
+#        Bcounter += 1
+#        Scounter = 0
+#        sum1 = 0
+#        sum2 = 0
+####
+
 
 print()
 #print("Recording finished")
@@ -376,13 +443,13 @@ scattery = [0] * plotlength
 for i in range(0,plotlength):
     scattery[i] = ((driver[i]-rgpz[i])/(R*1000))*1000000
 
-plt.figure(0)
+plt.figure(1)
 plt.plot(driver, color = '#962424') #red
  #rg or grpy is direct waveform generator voltage
 plt.plot(rgpz, color = '#249096') #cyan
 
 
-plt.figure(1)
+plt.figure(2)
 plt.scatter(scatterx,scattery, s=1)
 plt.xlabel("Input Voltage (V)")
 plt.ylabel("Current (µA) (scaling may be wrong)")
