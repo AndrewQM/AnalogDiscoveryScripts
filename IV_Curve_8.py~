@@ -96,7 +96,7 @@ if cdevices.value == 0:
 amplitude = .04 #float(input("Driving amplitude? (Volts):  "))
 periods = 40 #int(input("Number of desired IV cycles? "))
 ptsppI = 1000 #int(input("Number of datapoints per period? "))
-periodrate = .5 #float(input("Number of periods per second? "))
+periodrate = 2 #float(input("Number of periods per second? "))
 R = 10 #resistance in kOhms
 ARatio = 1  #if 1, most possible averaging is done internal. If 0, all averaging is done external (at 12 bit depth).
 DisableExternalAverageing = 0 #avoids 12bit rounding errors on low voltage signals. Set to zero for high speed & accuracy
