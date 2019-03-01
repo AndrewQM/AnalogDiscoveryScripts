@@ -93,19 +93,18 @@ if cdevices.value == 0:
 
 ############################################################
 
-amplitude = .04 #float(input("Driving amplitude? (Volts):  "))
-periods = 40 #int(input("Number of desired IV cycles? "))
-ptsppI = 1000 #int(input("Number of datapoints per period? "))
+amplitude = .05 #float(input("Driving amplitude? (Volts):  "))
+periods = 10 #int(input("Number of desired IV cycles? "))
+ptsppI = 100 #int(input("Number of datapoints per period? "))
 periodrate = .5 #float(input("Number of periods per second? "))
 R = 10 #resistance in kOhms
 ARatio = 1  #if 1, most possible averaging is done internal. If 0, all averaging is done external (at 12 bit depth).
-DisableExternalAverageing = 0 #avoids 12bit rounding errors on low voltage signals. Set to zero for high speed & accuracy
-dropratio = 1
+DisableExternalAverageing = 1 #avoids 12bit rounding errors on low voltage signals. Set to zero for high speed & accuracy
 
 prhzAcqI = periodrate * ptsppI #output sample rate
 
 
-MaxprhzAcq = 30000 #Internall max usable samplerate without errors.
+MaxprhzAcq = 20000 #Internall max usable samplerate without errors.
 #Should be increased as high as it can go on a certain config
 
 
@@ -205,7 +204,7 @@ else:
     InputRange = 1
 
 dwf.FDwfAnalogInChannelRangeSet(hdwf, c_int(0), c_double(InputRange))
-dwf.FDwfAnalogInChannelRangeSet(hdwf, c_int(1), c_double(InputRange*dropratio))  #set rangeof all channels to 1
+dwf.FDwfAnalogInChannelRangeSet(hdwf, c_int(1), c_double(1))  #set rangeof all channels to 1
 #dwf.FDwfAnalogInChannelRangeSteps(hdwf, stepsarray, ranges)
 
 
@@ -267,15 +266,15 @@ plt.draw()
 
 printProgressBar(0, nSamples, prefix = 'Progress:', suffix = 'Complete', length = 50)
 while cSamples < nSamples:
-    xmin, xmax = ax.get_xlim()
+    #xmin, xmax = ax.get_xlim()
 
-    if len(RGD1) >= xmax:
-        ax.set_xlim(len(RGD1) - ptsppI, len(RGD1))
-        ax.figure.canvas.draw()
+    #if len(RGD1) >= xmax:
+    #    ax.set_xlim(len(RGD1) - ptsppI, len(RGD1))
+    #    ax.figure.canvas.draw()
 
-    line1.set_data(RGDa,RGD1)
-    line2.set_data(RGDa,RGD2)
-    plt.pause(.00001)
+    #line1.set_data(RGDa,RGD1)
+    #line2.set_data(RGDa,RGD2)
+    #plt.pause(.00001)
 
 
 
